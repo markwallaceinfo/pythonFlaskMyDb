@@ -1,0 +1,63 @@
+
+pipeline {
+    agent any
+     options {
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '', daysToKeepStr: '5'))
+    }
+    stages {
+        stage('Pull code') {
+            steps {
+                script {
+                    properties([pipelineTriggers([pollSCM('H/30 * * * *')])])
+                }
+                git 'https://github.com/markwallaceinfo/Devops2510.git'
+            }
+
+        }
+         stage('Run Rest_app.py') {
+            steps {
+                script {
+                    bat 'start/min python3 Rest_API.py'
+                }
+            }
+        stage('Run web_app.py') {
+            steps {
+                script {
+                    bat 'start/min python3 web_app.py'
+                }
+            }
+        stage('Run backend_testing.py') {
+            steps {
+                script {
+                    sh 'python3 Backend_test.py'
+                }
+            }
+        stage('Run frontend_testing.py') {
+            steps {
+                script {
+                    sh 'python3 frontend_test.py'
+                }
+            }
+        stage('Run combined_testing.py') {
+            steps {
+                script {
+                    sh 'python3 combine_test.py'
+                }
+            }
+        stage('Run clean_environment.py') {
+            steps {
+                script {
+                    sh 'python3 clean_environment.py'
+                }
+            }
+        }
+    }
+}
+    post {
+        always {
+    script {
+    if (currentBuild.currentResult == 'FAILURE') {
+      step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "markwallaceinfo@gmail.com", sendToIndividuals: true])
+    }
+  }
+}
